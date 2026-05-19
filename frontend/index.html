@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideoTools</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link rel="stylesheet" href="style.css">
+    <script type="importmap">
+    {
+        "imports": {
+            "@ffmpeg/ffmpeg": "https://unpkg.com/@ffmpeg/ffmpeg@0.12.15/dist/esm/index.js",
+            "@ffmpeg/util": "https://unpkg.com/@ffmpeg/util@0.12.2/dist/esm/index.js"
+        }
+    }
+    </script>
+</head>
+<body>
+    <main class="container">
+        <header class="site-header">
+            <h1><span class="grad">Video</span>Tools</h1>
+            <div class="lang-wrapper">
+                <svg class="lang-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10A15.3 15.3 0 0 1 12 2z"/>
+                </svg>
+                <select id="lang-select" class="lang-select" onchange="setLang(this.value)">
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="en">🇬🇧 English</option>
+                </select>
+            </div>
+        </header>
+        <p data-i18n="site.subtitle">上传视频，在浏览器中使用 ffmpeg 处理。</p>
+
+        <!-- Wasm Loading -->
+        <div id="wasm-loading" class="wasm-loading">
+            <span data-i18n="wasm.loading">正在加载 ffmpeg 引擎...</span>
+        </div>
+
+        <!-- Upload Section -->
+        <section id="upload-section">
+            <h2 data-i18n="upload.title">选择视频</h2>
+            <div id="drop-zone" class="drop-zone">
+                <svg class="drop-icon" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M24 32V12M16 20l8-8 8 8"/>
+                    <path d="M8 32a8 8 0 0 1-.4-16 12 12 0 0 1 23.3-3A10 10 0 0 1 40 32"/>
+                </svg>
+                <p data-i18n="upload.dropzone">拖放视频文件到此处，或点击选择</p>
+                <input type="file" id="file-input" accept="video/*" hidden>
+            </div>
+            <div id="upload-progress" hidden>
+                <progress id="upload-bar" max="100" value="0"></progress>
+                <span id="upload-status"></span>
+            </div>
+        </section>
+
+        <!-- Video Preview -->
+        <section id="preview-section" hidden>
+            <h2 data-i18n="preview.title">视频预览</h2>
+            <div class="video-wrapper">
+                <video id="video-player" controls></video>
+            </div>
+            <!-- Timeline Range Selector -->
+            <div class="timeline-container">
+                <div class="timeline-labels">
+                    <span id="tl-start-label">00:00.0</span>
+                    <span data-i18n="preview.selected">已选片段</span>
+                    <span id="tl-end-label">00:00.0</span>
+                </div>
+                <div class="timeline-track" id="timeline-track">
+                    <div class="timeline-selected" id="timeline-selected"></div>
+                    <div class="timeline-playhead" id="timeline-playhead"></div>
+                    <div class="timeline-handle timeline-handle-start" id="handle-start"></div>
+                    <div class="timeline-handle timeline-handle-end" id="handle-end"></div>
+                </div>
+                <div class="timeline-times">
+                    <span>00:00.0</span>
+                    <span id="tl-duration">00:00.0</span>
+                </div>
+            </div>
+            <!-- File Info (inline) -->
+            <div class="file-info-bar">
+                <span><strong data-i18n="fileinfo.filename">文件名：</strong><span id="info-filename"></span></span>
+                <span><strong data-i18n="fileinfo.size">大小：</strong><span id="info-size"></span></span>
+                <span><strong data-i18n="fileinfo.duration">时长：</strong><span id="info-duration"></span></span>
+                <span><strong data-i18n="fileinfo.resolution">分辨率：</strong><span id="info-resolution"></span></span>
+            </div>
+        </section>
+
+        <!-- Operations -->
+        <section id="operations" hidden>
+            <h2 data-i18n="ops.title">操作</h2>
+            <p class="selection-hint" id="selection-hint"></p>
+            <div class="grid">
+                <!-- Convert -->
+                <article>
+                    <h3 data-i18n="ops.convert">格式转换</h3>
+                    <label for="target-format" data-i18n="ops.convert.label">目标格式</label>
+                    <select id="target-format">
+                        <option value="mp4">MP4</option>
+                        <option value="webm">WebM</option>
+                        <option value="mkv">MKV</option>
+                        <option value="avi">AVI</option>
+                        <option value="mov">MOV</option>
+                        <option value="gif">GIF</option>
+                    </select>
+                    <!-- GIF Options -->
+                    <div id="gif-options" class="gif-options" hidden>
+                        <div class="gif-options-grid">
+                            <div>
+                                <label for="gif-fps" data-i18n="gif.fps">帧率 (FPS)</label>
+                                <select id="gif-fps">
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="15" selected>15</option>
+                                    <option value="20">20</option>
+                                    <option value="25">25</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gif-width" data-i18n="gif.width">输出宽度</label>
+                                <select id="gif-width">
+                                    <option value="" data-i18n="gif.width.original">原始尺寸</option>
+                                    <option value="640">640px</option>
+                                    <option value="480" selected>480px</option>
+                                    <option value="320">320px</option>
+                                    <option value="240">240px</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gif-colors" data-i18n="gif.colors">调色板颜色数</label>
+                                <select id="gif-colors">
+                                    <option value="64">64</option>
+                                    <option value="128">128</option>
+                                    <option value="256" selected>256</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gif-dither" data-i18n="gif.dither">抖动算法</label>
+                                <select id="gif-dither">
+                                    <option value="none" data-i18n="gif.dither.none">无</option>
+                                    <option value="bayer">Bayer</option>
+                                    <option value="sierra2_4a" selected>Sierra2_4a</option>
+                                    <option value="floyd_steinberg">Floyd-Steinberg</option>
+                                    <option value="heckbert">Heckbert</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="gif-loop" data-i18n="gif.loop">循环方式</label>
+                                <select id="gif-loop">
+                                    <option value="infinite" data-i18n="gif.loop.infinite">无限循环</option>
+                                    <option value="once" data-i18n="gif.loop.once">播放一次</option>
+                                    <option value="bounce" data-i18n="gif.loop.bounce">往复播放</option>
+                                    <option value="custom" data-i18n="gif.loop.custom">自定义次数</option>
+                                </select>
+                            </div>
+                            <div id="gif-loop-count-wrap" hidden>
+                                <label for="gif-loop-count" data-i18n="gif.loop.count">循环次数</label>
+                                <input type="number" id="gif-loop-count" value="3" min="1" max="999">
+                            </div>
+                        </div>
+                    </div>
+                    <button id="btn-convert" disabled data-i18n="ops.convert.btn">转换</button>
+                </article>
+
+                <!-- Compress -->
+                <article>
+                    <h3 data-i18n="ops.compress">压缩</h3>
+                    <label for="quality" data-i18n="ops.compress.label">质量</label>
+                    <select id="quality">
+                        <option value="high" data-i18n="ops.compress.high">高质量 (CRF 23)</option>
+                        <option value="medium" selected data-i18n="ops.compress.medium">中等质量 (CRF 28)</option>
+                        <option value="low" data-i18n="ops.compress.low">低质量 (CRF 32)</option>
+                    </select>
+                    <button id="btn-compress" disabled data-i18n="ops.compress.btn">压缩</button>
+                </article>
+
+                <!-- Trim -->
+                <article>
+                    <h3 data-i18n="ops.trim">裁剪</h3>
+                    <div class="trim-inputs">
+                        <div>
+                            <label for="trim-start" data-i18n="ops.trim.start">开始时间（秒）</label>
+                            <input type="number" id="trim-start" value="0" min="0" step="0.1">
+                        </div>
+                        <div>
+                            <label for="trim-end" data-i18n="ops.trim.end">结束时间（秒）</label>
+                            <input type="number" id="trim-end" value="10" min="0" step="0.1">
+                        </div>
+                    </div>
+                    <button id="btn-trim" disabled data-i18n="ops.trim.btn">裁剪</button>
+                </article>
+            </div>
+        </section>
+
+        <!-- Tasks -->
+        <section id="tasks-section" hidden>
+            <h2 data-i18n="tasks.title">任务列表</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th data-i18n="tasks.col.operation">操作</th>
+                        <th data-i18n="tasks.col.file">文件</th>
+                        <th data-i18n="tasks.col.status">状态</th>
+                        <th data-i18n="tasks.col.progress">进度</th>
+                        <th data-i18n="tasks.col.action">操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tasks-body"></tbody>
+            </table>
+        </section>
+    </main>
+    <script src="i18n.js"></script>
+    <script type="module" src="app.js"></script>
+</body>
+</html>
