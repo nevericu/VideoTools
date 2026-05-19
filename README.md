@@ -18,30 +18,58 @@ A browser-only video processing tool powered by ffmpeg.wasm. No server required.
 
 ## 快速开始 / Quick Start
 
-### 直接使用
+### 本地开发
 
-用任意静态文件服务器托管 `frontend/` 目录：
-
-```bash
-python3 -m http.server 8080 -d frontend
-```
-
-访问 http://localhost:8080
-
-### Docker
+用任意静态文件服务器托管 `src/` 目录，以下方式任选其一：
 
 ```bash
-docker compose up --build
+npx serve src                          # Node.js（推荐，零安装）
+npx http-server src -p 8080            # Node.js 备选
+python3 -m http.server 8080 -d src     # Python
+php -S localhost:8080 -t src           # PHP
 ```
 
-访问 http://localhost:8080
+或使用 VS Code 的 **Live Server** 扩展，右键 `src/index.html` → Open with Live Server。
+
+## 部署 / Deploy
+
+纯静态项目，无需构建步骤，直接部署 `src/` 目录即可。
+
+### GitHub Pages
+
+仓库已包含 `.github/workflows/deploy.yml`，推送到 `main` 分支自动部署。
+
+手动开启：Settings → Pages → Source 选择 **GitHub Actions**。
+
+### Cloudflare Pages
+
+1. 登录 [Cloudflare Dashboard](https://dash.cloudflare.com/) → Pages → Create a project
+2. 连接 GitHub 仓库
+3. 构建设置：
+   - **Build command**：留空
+   - **Build output directory**：`src`
+4. 保存并部署
+
+### Vercel
+
+仓库已包含 `vercel.json` 配置。
+
+1. 登录 [Vercel](https://vercel.com/) → Import Git Repository
+2. 选择仓库，框架选择 **Other**
+3. 自动识别配置，直接部署
+
+或使用 CLI：
+
+```bash
+npx vercel --prod
+```
 
 ## 技术栈 / Tech Stack
 
 - **视频处理**: [ffmpeg.wasm](https://ffmpegwasm.netlify.app/) v0.12.x（单线程模式）
 - **前端**: 原生 HTML/JS（ES modules）+ [PicoCSS](https://picocss.com/) v2（深色主题）
 - **缓存**: Cache API 持久化 wasm 引擎
-- **部署**: 任意静态文件服务器 / nginx (Docker)
+- **部署**: GitHub Pages / Cloudflare Pages / Vercel
 
 ## 限制 / Limitations
 
@@ -53,11 +81,12 @@ docker compose up --build
 ## 项目结构 / Project Structure
 
 ```
-├── frontend/
-│   ├── index.html    # 入口，含 import map
-│   ├── app.js        # ES module：ffmpeg.wasm 核心逻辑
-│   ├── i18n.js       # 中英文翻译
-│   └── style.css     # 深色主题 + 毛玻璃 + 渐变样式
-├── Dockerfile        # nginx 静态文件服务
-└── docker-compose.yml
+├── src/
+│   ├── index.html        # 入口，含 import map
+│   ├── app.js            # ES module：ffmpeg.wasm 核心逻辑
+│   ├── i18n.js           # 中英文翻译
+│   └── style.css         # 深色主题 + 毛玻璃 + 渐变样式
+├── .github/workflows/
+│   └── deploy.yml        # GitHub Pages 自动部署
+└── vercel.json           # Vercel 部署配置
 ```

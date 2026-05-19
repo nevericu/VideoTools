@@ -1,20 +1,28 @@
 # VideoTools
 
-Pure frontend video processing tool using ffmpeg.wasm. No backend, no build step.
+Pure src video processing tool using ffmpeg.wasm. No backend, no build step.
 
 ## Run
 
 ```bash
-python3 -m http.server 8080 -d frontend    # Local dev
-docker compose up --build                   # Docker (nginx on port 8080)
+npx serve src                          # Node.js (recommended)
+npx http-server src -p 8080            # Node.js alt
+python3 -m http.server 8080 -d src     # Python
+php -S localhost:8080 -t src           # PHP
 ```
+
+## Deploy
+
+- GitHub Pages: push to `main` triggers `.github/workflows/deploy.yml`
+- Cloudflare Pages: set build output to `src`, no build command
+- Vercel: `vercel.json` sets `outputDirectory` to `src`
 
 ## Project Structure
 
-- `frontend/index.html` — Entry point, import map for ffmpeg.wasm CDN
-- `frontend/app.js` — ES module: ffmpeg.wasm init, file handling, convert/compress/trim
-- `frontend/i18n.js` — Classic script: zh/en translations, `t()`, `setLang()`, `applyI18n()`
-- `frontend/style.css` — Custom styles on top of PicoCSS
+- `src/index.html` — Entry point, import map for ffmpeg.wasm CDN
+- `src/app.js` — ES module: ffmpeg.wasm init, file handling, convert/compress/trim
+- `src/i18n.js` — Classic script: zh/en translations, `t()`, `setLang()`, `applyI18n()`
+- `src/style.css` — Custom styles on top of PicoCSS
 
 ## Key Conventions
 
