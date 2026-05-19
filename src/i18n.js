@@ -57,6 +57,7 @@ const translations = {
         'tasks.kind.convert': '转换',
         'tasks.kind.compress': '压缩',
         'tasks.kind.trim': '裁剪',
+        'footer.notice': '本工具无需后端，所有数据仅存放在您的浏览器本地。如不放心，亦可自行部署。首次加载引擎可能较慢，请耐心等待。',
     },
     en: {
         'site.title': 'VideoTools',
@@ -116,6 +117,7 @@ const translations = {
         'tasks.kind.convert': 'Convert',
         'tasks.kind.compress': 'Compress',
         'tasks.kind.trim': 'Trim',
+        'footer.notice': 'No backend required — all data stays in your browser. You can also self-host if preferred. The engine may take a moment to load on first visit.',
     },
 };
 
