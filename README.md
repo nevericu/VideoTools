@@ -2,7 +2,7 @@
 
 纯浏览器视频处理工具，基于 ffmpeg.wasm，无需后端服务器。
 
-A browser-only video processing tool powered by ffmpeg.wasm. No server required.
+[English](README.en.md)
 
 ## 功能 / Features
 
